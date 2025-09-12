@@ -12,10 +12,7 @@ class StatsSection extends StatelessWidget {
       children: [
         const Text(
           'Overview',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
         GridView.count(

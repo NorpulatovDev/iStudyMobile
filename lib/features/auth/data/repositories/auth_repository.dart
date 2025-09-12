@@ -83,7 +83,7 @@ class AuthRepository {
       final userData = await getCurrentUser();
       if (userData != null) {
         await _apiService.dio.post(
-          ApiConstants.loginEndpoint,
+          ApiConstants.logoutEndpoint,
           queryParameters: {"userId": userData.userId},
         );
       }
@@ -112,7 +112,7 @@ class AuthRepository {
       // Save new access token
       await _storageService.saveToken(
         ApiConstants.accessTokenKey,
-        loginResponse.refreshToken,
+        loginResponse.accessToken,
       );
       _apiService.setAuthToken(loginResponse.accessToken);
 

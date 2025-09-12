@@ -18,5 +18,5 @@ Future<void> setupLocator() async {
   );
 
   // BLoCs
-  sl.registerFactory<AuthBloc>(()=> AuthBloc(sl<AuthRepository>()));
+  sl.registerLazySingleton<AuthBloc>(()=> AuthBloc(sl<AuthRepository>()));
 }

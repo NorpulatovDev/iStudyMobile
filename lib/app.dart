@@ -6,7 +6,6 @@ import 'package:istudy/features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/home/presentation/pages/home_page.dart';
 
-
 class App extends StatelessWidget {
   const App({super.key});
 
@@ -20,16 +19,25 @@ class App extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         home: BlocBuilder<AuthBloc, AuthState>(
           builder: (context, state) {
-            if (state is AuthLoading) {
-              return Scaffold(
-                body: Center(child: CircularProgressIndicator.adaptive()),
-              );
-            }
+            print("🔍 Current auth state: ${state.runtimeType}");
 
             if (state is AuthAuthenticated) {
-              return HomePage();
+              print("✅ Authenticated: ${state.user.username}");
+              return const HomePage();
             }
-            return LoginPage();
+
+            print("❌ Showing login page");
+            return const LoginPage();
+            // if (state is AuthLoading) {
+            //   return Scaffold(
+            //     body: Center(child: CircularProgressIndicator.adaptive()),
+            //   );
+            // }
+
+            // if (state is AuthAuthenticated) {
+            //   return HomePage();
+            // }
+            // return LoginPage();
           },
         ),
       ),

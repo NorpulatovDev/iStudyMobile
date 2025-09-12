@@ -55,20 +55,22 @@ class HomePage extends StatelessWidget {
       ),
       body: const Padding(
         padding: EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Welcome Section
-            WelcomeSection(),
-            SizedBox(height: 24),
-            
-            // Stats Cards
-            StatsSection(),
-            SizedBox(height: 24),
-            
-            // Quick Actions
-            QuickActionsSection(),
-          ],
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Welcome Section
+              WelcomeSection(),
+              SizedBox(height: 24),
+
+              // Stats Cards
+              StatsSection(),
+              SizedBox(height: 24),
+
+              // Quick Actions
+              QuickActionsSection(),
+            ],
+          ),
         ),
       ),
     );
