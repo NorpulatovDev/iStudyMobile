@@ -14,6 +14,7 @@ class BranchBloc extends Bloc<BranchEvent, BranchState> {
     
     on<LoadBranches>(_onLoadBranches);
     on<SelectBranch>(_onSelectBranch);
+    on<DeleteBranch>(_onDeleteBranch);
   }
 
   Future<void> _onLoadBranches(
@@ -62,9 +63,19 @@ class BranchBloc extends Bloc<BranchEvent, BranchState> {
       ));
     }
   }
+
+  Future<void> _onDeleteBranch(
+    DeleteBranch event,
+    Emitter<BranchState> emit,
+  ) async {
+    emit(BranchLoading());
+    
+    try {
+      await _branchRepository.deleteBranch(event.branchId);
+      final branches = await _branchRepository.getAllBranches();
+      emit(BranchesLoaded(branches));
+    } catch (e) {
+      emit(BranchError(e.toString()));
+    }
+  }
 }
-
-// Events
-
-
-// States

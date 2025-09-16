@@ -17,3 +17,12 @@ class SelectBranch extends BranchEvent {
   @override
   List<Object> get props => [branch];
 }
+
+class DeleteBranch extends BranchEvent {
+  final int branchId;
+
+  const DeleteBranch(this.branchId);
+
+  @override
+  List<Object> get props => [branchId];
+}
