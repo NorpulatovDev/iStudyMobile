@@ -24,7 +24,7 @@ class AuthRepository {
       );
       final loginResponse = LoginResponse.fromJson(response.data);
       // CHECK if user is SUPER_ADMIN
-      if (loginResponse.role != 'ADMIN') {
+      if (loginResponse.role != 'SUPER_ADMIN') {
         throw Exception("Only Admin can access this application");
       }
 

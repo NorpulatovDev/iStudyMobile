@@ -5,6 +5,7 @@ import './features/auth/data/repositories/auth_repository.dart';
 import './core/theme/app_theme.dart';
 import './features/auth/presentation/bloc/auth_bloc.dart';
 import './features/auth/presentation/pages/login_page.dart';
+import './features/main_layout.dart';
 
 
 class App extends StatelessWidget {
