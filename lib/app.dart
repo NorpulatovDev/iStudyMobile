@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:istudy/features/branches/data/repositories/branch_repository.dart';
+import 'package:istudy/features/branches/presentation/bloc/branch_bloc.dart';
+import 'package:istudy/features/users/data/repositories/user_repository.dart';
+import 'package:istudy/features/users/presentation/bloc/user_bloc.dart';
 import './core/injection/injection_container.dart';
 import './features/auth/data/repositories/auth_repository.dart';
 import './core/theme/app_theme.dart';
 import './features/auth/presentation/bloc/auth_bloc.dart';
 import './features/auth/presentation/pages/login_page.dart';
 import './features/main_layout.dart';
-
 
 class App extends StatelessWidget {
   const App({super.key});
@@ -19,6 +22,8 @@ class App extends StatelessWidget {
           create: (context) => AuthBloc(sl<AuthRepository>())
             ..add(AuthCheckRequested()), // Check if user is already logged in
         ),
+        BlocProvider(create: (context) => UserBloc(sl<UserRepository>())),
+        BlocProvider(create: (context) => BranchBloc(sl<BranchRepository>())),
       ],
       child: MaterialApp(
         title: "iStudy Admin",
@@ -60,7 +65,7 @@ class App extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 24),
-                      
+
                       // App Title
                       const Text(
                         'iStudy Admin',
@@ -71,14 +76,14 @@ class App extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 32),
-                      
+
                       // Loading Indicator
                       const CircularProgressIndicator(
                         color: AppTheme.primaryColor,
                         strokeWidth: 3,
                       ),
                       const SizedBox(height: 16),
-                      
+
                       Text(
                         'Loading...',
                         style: TextStyle(
