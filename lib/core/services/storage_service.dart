@@ -1,4 +1,5 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../constants/api_constants.dart';
 
 class StorageService {
   static const _storage = FlutterSecureStorage();
@@ -20,10 +21,10 @@ class StorageService {
   }
 
   Future<void> saveUserData(String userData)async{
-    await _storage.write(key: "user_data", value: userData);
+    await _storage.write(key: ApiConstants.userDataKey, value: userData);
   }
 
   Future<String?> getUserData()async{
-    return await _storage.read(key: "user_data");
+    return await _storage.read(key: ApiConstants.userDataKey);
   }
 }

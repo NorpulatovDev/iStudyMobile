@@ -1,16 +1,18 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
-import 'package:istudy/core/constants/api_constants.dart';
-import 'package:istudy/core/services/api_service.dart';
-import 'package:istudy/core/services/storage_service.dart';
-import 'package:istudy/features/auth/data/models/user_model.dart';
+import '../../../../core/constants/api_constants.dart';
+import '../../../../core/services/api_service.dart';
+import '../../../../core/services/storage_service.dart';
+import '../models/login_request.dart';
+import '../models/login_response.dart';
+import '../models/user_model.dart';
 
 class AuthRepository {
   final ApiService _apiService;
   final StorageService _storageService;
 
-  AuthRepository(this._apiService, this._storageService);
+  const AuthRepository(this._apiService, this._storageService);
 
   Future<UserModel> login(String username, String password) async {
     try {
@@ -20,13 +22,10 @@ class AuthRepository {
         ApiConstants.loginEndpoint,
         data: request.toJson(),
       );
-
       final loginResponse = LoginResponse.fromJson(response.data);
-
       // CHECK if user is SUPER_ADMIN
-      if (loginResponse.role != 'SUPER_ADMIN') {
-        print('simple user');
-        throw Exception("Only Super Admin can access this application");
+      if (loginResponse.role != 'ADMIN') {
+        throw Exception("Only Admin can access this application");
       }
 
       // Save tokens

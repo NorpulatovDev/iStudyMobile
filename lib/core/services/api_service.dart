@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:istudy/core/constants/api_constants.dart';
+import '../constants/api_constants.dart';
 
 class ApiService {
   late final Dio _dio;
@@ -21,12 +21,11 @@ class ApiService {
 
   Dio get dio => _dio;
 
-  void setAuthToken(String token){
-    _dio.options.headers["Authorization"] = 'Bearer $token';
+  void setAuthToken(String token) {
+    _dio.options.headers["Authorization"] = "Bearer $token";
   }
 
-  void clearAuthToken(){
+  void clearAuthToken() {
     _dio.options.headers.remove("Authorization");
   }
-
 }

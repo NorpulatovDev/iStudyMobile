@@ -1,7 +1,7 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:istudy/features/auth/data/models/user_model.dart';
-import 'package:istudy/features/auth/data/repositories/auth_repository.dart';
+import '../../data/models/user_model.dart';
+import '../../data/repositories/auth_repository.dart';
 
 part 'auth_event.dart';
 part 'auth_state.dart';
@@ -24,8 +24,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       final user = await _authRepository.login(event.username, event.password);
       emit(AuthAuthenticated(user));
-      print("AuthAuthenticated called!");
     } catch (e) {
+      print('Bloc exception');
       emit(AuthError(e.toString()));
     }
   }
@@ -38,9 +38,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     try {
       await _authRepository.logout();
-      emit(AuthUnAuthenticated());
+      emit(AuthUnauthenticated());
     } catch (e) {
-      emit(AuthUnAuthenticated()); // Always logout even if API fails
+      emit(AuthUnauthenticated()); // Always logout even if API fails
     }
   }
 
@@ -55,10 +55,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       if (user != null) {
         emit(AuthAuthenticated(user));
       } else {
-        emit(AuthUnAuthenticated());
+        emit(AuthUnauthenticated());
       }
     } catch (e) {
-      emit(AuthUnAuthenticated());
+      emit(AuthUnauthenticated());
     }
   }
 }

@@ -1,9 +1,10 @@
-import 'package:flutter/material.dart';
+// lib/core/injection/injection_container.dart
 import 'package:get_it/get_it.dart';
-import 'package:istudy/core/services/api_service.dart';
-import 'package:istudy/core/services/storage_service.dart';
-import 'package:istudy/features/auth/data/repositories/auth_repository.dart';
-import 'package:istudy/features/auth/presentation/bloc/auth_bloc.dart';
+import '../services/api_service.dart';
+import '../services/storage_service.dart';
+import '../../features/auth/data/repositories/auth_repository.dart';
+import '../../features/auth/presentation/bloc/auth_bloc.dart';
+
 
 final sl = GetIt.instance;
 
@@ -17,6 +18,8 @@ Future<void> setupLocator() async {
     () => AuthRepository(sl<ApiService>(), sl<StorageService>()),
   );
 
+
+
   // BLoCs
-  sl.registerLazySingleton<AuthBloc>(()=> AuthBloc(sl<AuthRepository>()));
+  sl.registerLazySingleton<AuthBloc>(() => AuthBloc(sl<AuthRepository>()));
 }
