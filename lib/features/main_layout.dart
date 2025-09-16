@@ -19,14 +19,50 @@ class MainLayout extends StatefulWidget {
   State<MainLayout> createState() => _MainLayoutState();
 }
 
-class _MainLayoutState extends State<MainLayout> {
+class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
   int _currentIndex = 0;
+  late PageController _pageController;
+  late AnimationController _animationController;
 
   final List<Widget> _pages = [
     const ReportsPage(),
     const BranchManagementPage(),
     const UserManagementPage(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  void _onTabTapped(int index) {
+    if (index != _currentIndex) {
+      setState(() {
+        _currentIndex = index;
+      });
+      
+      _pageController.animateToPage(
+        index,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+      
+      // Add a subtle haptic feedback
+      // HapticFeedback.lightImpact(); // Uncomment if you want haptic feedback
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,17 +79,24 @@ class _MainLayoutState extends State<MainLayout> {
         ),
       ],
       child: Scaffold(
-        body: IndexedStack(
-          index: _currentIndex,
-          children: _pages,
-        ),
-        bottomNavigationBar: AdminBottomNavigation(
-          currentIndex: _currentIndex,
-          onTap: (index) {
+        backgroundColor: const Color(0xFFF5F7FA),
+        body: PageView(
+          controller: _pageController,
+          onPageChanged: (index) {
             setState(() {
               _currentIndex = index;
             });
           },
+          children: _pages.map((page) {
+            return AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              child: page,
+            );
+          }).toList(),
+        ),
+        bottomNavigationBar: AdminBottomNavigation(
+          currentIndex: _currentIndex,
+          onTap: _onTabTapped,
         ),
       ),
     );
