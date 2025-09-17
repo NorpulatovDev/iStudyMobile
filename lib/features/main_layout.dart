@@ -1,12 +1,16 @@
+// lib/features/main_layout.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:istudy/features/branches/presentation/pages/branch_management_page.dart';
 import '../core/injection/injection_container.dart';
 import 'reports/data/repositories/report_repository.dart';
 import 'reports/presentation/bloc/report_bloc.dart';
 import 'reports/presentation/pages/reports_page.dart';
 import 'branches/data/repositories/branch_repository.dart';
 import 'branches/presentation/bloc/branch_bloc.dart';
-import 'branches/presentation/pages/branch_management_page.dart';
+import 'courses/data/repositories/course_repository.dart';
+import 'courses/presentation/bloc/course_bloc.dart';
+import 'courses/presentation/pages/course_management_page.dart';
 import 'users/data/repositories/user_repository.dart';
 import 'users/presentation/bloc/user_bloc.dart';
 import 'users/presentation/pages/user_management_page.dart';
@@ -27,6 +31,7 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
   // Create BLoC instances once and reuse them
   late final ReportBloc _reportBloc;
   late final BranchBloc _branchBloc;
+  late final CourseBloc _courseBloc;
   late final UserBloc _userBloc;
 
   final List<Widget> _pages = [];
@@ -43,12 +48,13 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
     // Initialize BLoCs once
     _reportBloc = ReportBloc(sl<ReportRepository>());
     _branchBloc = BranchBloc(sl<BranchRepository>());
+    _courseBloc = CourseBloc(sl<CourseRepository>());
     _userBloc = UserBloc(sl<UserRepository>());
 
     // Initialize pages after BLoCs are created
     _pages.addAll([
       const ReportsPage(),
-      const BranchManagementPage(),
+      const BranchManagementPage(), // Changed from BranchManagementPage
       const UserManagementPage(),
     ]);
   }
@@ -60,6 +66,7 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
     // Dispose BLoCs
     _reportBloc.close();
     _branchBloc.close();
+    _courseBloc.close();
     _userBloc.close();
     super.dispose();
   }
@@ -86,10 +93,13 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
     return MultiBlocProvider(
       providers: [
         BlocProvider(
-      create: (context) => ReportBloc(sl<ReportRepository>()),
-    ),
-    BlocProvider.value(value: context.read<BranchBloc>()),
-    BlocProvider.value(value: context.read<UserBloc>()),
+          create: (context) => ReportBloc(sl<ReportRepository>()),
+        ),
+        BlocProvider.value(value: context.read<BranchBloc>()),
+        BlocProvider(
+          create: (context) => CourseBloc(sl<CourseRepository>()),
+        ),
+        BlocProvider.value(value: context.read<UserBloc>()),
       ],
       child: Scaffold(
         backgroundColor: const Color(0xFFF5F7FA),

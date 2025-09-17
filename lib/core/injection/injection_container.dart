@@ -6,6 +6,8 @@ import '../../features/reports/data/repositories/report_repository.dart';
 import '../../features/reports/presentation/bloc/report_bloc.dart';
 import '../../features/branches/data/repositories/branch_repository.dart';
 import '../../features/branches/presentation/bloc/branch_bloc.dart';
+import '../../features/courses/data/repositories/course_repository.dart';
+import '../../features/courses/presentation/bloc/course_bloc.dart';
 import '../services/api_service.dart';
 import '../services/storage_service.dart';
 import '../../features/auth/data/repositories/auth_repository.dart';
@@ -29,10 +31,12 @@ Future<void> setupLocator() async {
     () => BranchRepository(sl<ApiService>()),
   );
   sl.registerLazySingleton<UserRepository>(() => UserRepository(sl<ApiService>()));
+  sl.registerLazySingleton<CourseRepository>(() => CourseRepository(sl<ApiService>()));
 
   // BLoCs
   sl.registerLazySingleton<AuthBloc>(() => AuthBloc(sl<AuthRepository>()));
   sl.registerLazySingleton<ReportBloc>(() => ReportBloc(sl<ReportRepository>()));
   sl.registerLazySingleton<BranchBloc>(() => BranchBloc(sl<BranchRepository>()));
   sl.registerLazySingleton<UserBloc>(() => UserBloc(sl<UserRepository>()));
+  sl.registerLazySingleton<CourseBloc>(() => CourseBloc(sl<CourseRepository>()));
 }

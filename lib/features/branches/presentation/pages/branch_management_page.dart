@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:istudy/features/courses/presentation/pages/course_management_page.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../bloc/branch_bloc.dart';
 import '../../data/models/branch_model.dart';
@@ -490,7 +491,14 @@ class _BranchManagementPageState extends State<BranchManagementPage> {
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: () => _showEditBranchDialog(branch),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => CourseManagementPage(branchId: branch.id),
+              ),
+            );
+          },
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Row(

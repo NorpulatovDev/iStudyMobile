@@ -1,5 +1,6 @@
+// lib/features/shared/widgets/admin_bottom_navigation.dart
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_theme.dart';
 
 class AdminBottomNavigation extends StatelessWidget {
   final int currentIndex;
@@ -13,90 +14,52 @@ class AdminBottomNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mediaQuery = MediaQuery.of(context);
-    final screenWidth = mediaQuery.size.width;
-    final screenHeight = mediaQuery.size.height;
-    final orientation = mediaQuery.orientation;
-    final viewInsets = mediaQuery.viewInsets;
-    final padding = mediaQuery.padding;
-    
-    // Determine device characteristics
-    final isLandscape = orientation == Orientation.landscape;
-    final isTablet = screenWidth >= 600;
-    final isSmallDevice = screenWidth < 360;
-    final isVerySmallDevice = screenWidth < 320;
-    final hasNotch = padding.bottom > 20; // Detect devices with home indicator
-    
-    // Calculate safe dimensions to prevent overflow
-    final availableHeight = screenHeight - viewInsets.bottom - padding.top;
-    final maxNavigationHeight = availableHeight * 0.12; // Max 12% of screen height
-    
-    // Adaptive dimensions with overflow prevention
-    final navigationHeight = _getSafeNavigationHeight(
-      isTablet: isTablet,
-      isSmallDevice: isSmallDevice,
-      isLandscape: isLandscape,
-      hasNotch: hasNotch,
-      maxHeight: maxNavigationHeight,
-    );
-    
-    final borderRadius = isTablet ? 20.0 : (isLandscape ? 16.0 : 20.0);
-    final horizontalPadding = _getHorizontalPadding(screenWidth, isTablet);
-    final verticalPadding = _getVerticalPadding(isSmallDevice, isLandscape);
-    
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(borderRadius),
-          topRight: Radius.circular(borderRadius),
-        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 15,
-            offset: const Offset(0, -3),
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 20,
+            offset: const Offset(0, -5),
           ),
         ],
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
       ),
       child: SafeArea(
         top: false,
         child: Container(
-          height: navigationHeight,
+          height: _getNavigationHeight(context),
           padding: EdgeInsets.symmetric(
-            horizontal: horizontalPadding,
-            vertical: verticalPadding,
+            horizontal: _getHorizontalPadding(context),
+            vertical: _getVerticalPadding(context),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              _buildCompactNavItem(
+              _buildNavItem(
+                context: context,
                 icon: Icons.analytics_rounded,
                 label: 'Reports',
                 index: 0,
                 color: Colors.green,
-                isTablet: isTablet,
-                isSmallDevice: isSmallDevice,
-                isLandscape: isLandscape,
               ),
-              _buildCompactNavItem(
-                icon: Icons.business_rounded,
+              _buildNavItem(
+                context: context,
+                icon: Icons.school_rounded,
                 label: 'Branches',
                 index: 1,
-                color: AppTheme.primaryColor,
-                isTablet: isTablet,
-                isSmallDevice: isSmallDevice,
-                isLandscape: isLandscape,
+                color: Colors.indigo,
               ),
-              _buildCompactNavItem(
+              _buildNavItem(
+                context: context,
                 icon: Icons.people_rounded,
                 label: 'Users',
                 index: 2,
                 color: Colors.purple,
-                isTablet: isTablet,
-                isSmallDevice: isSmallDevice,
-                isLandscape: isLandscape,
               ),
             ],
           ),
@@ -105,161 +68,194 @@ class AdminBottomNavigation extends StatelessWidget {
     );
   }
 
-  double _getSafeNavigationHeight({
-    required bool isTablet,
-    required bool isSmallDevice,
-    required bool isLandscape,
-    required bool hasNotch,
-    required double maxHeight,
-  }) {
-    double baseHeight;
-    
-    if (isLandscape) {
-      baseHeight = isTablet ? 60 : (isSmallDevice ? 50 : 55);
-    } else {
-      baseHeight = isTablet ? 75 : (isSmallDevice ? 60 : 70);
-    }
-    
-    // Add extra space for devices with home indicator
-    if (hasNotch && !isLandscape) {
-      baseHeight += 5;
-    }
-    
-    // Ensure we don't exceed the maximum allowed height
-    return baseHeight.clamp(45, maxHeight);
-  }
-
-  double _getHorizontalPadding(double screenWidth, bool isTablet) {
-    if (isTablet) return 24;
-    if (screenWidth < 320) return 8;
-    if (screenWidth < 360) return 12;
-    return 16;
-  }
-
-  double _getVerticalPadding(bool isSmallDevice, bool isLandscape) {
-    if (isLandscape) return 4;
-    return isSmallDevice ? 6 : 8;
-  }
-
-  Widget _buildCompactNavItem({
+  Widget _buildNavItem({
+    required BuildContext context,
     required IconData icon,
     required String label,
     required int index,
     required Color color,
-    required bool isTablet,
-    required bool isSmallDevice,
-    required bool isLandscape,
   }) {
     final isSelected = currentIndex == index;
-    
-    // Compact dimensions to prevent overflow
-    final iconSize = _getCompactIconSize(isTablet, isSmallDevice, isLandscape);
-    final fontSize = _getCompactFontSize(isTablet, isSmallDevice, isLandscape);
-    final iconPadding = _getCompactIconPadding(isTablet, isSmallDevice, isLandscape);
-    final itemPadding = _getCompactItemPadding(isSmallDevice, isLandscape);
-    final borderRadius = isTablet ? 14.0 : 12.0;
-    final spacing = isLandscape || isSmallDevice ? 2.0 : 3.0;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 375;
     
     return Expanded(
       child: GestureDetector(
         onTap: () => onTap(index),
         behavior: HitTestBehavior.opaque,
         child: Container(
-          margin: EdgeInsets.symmetric(horizontal: isSmallDevice ? 2 : 4),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-            // padding: EdgeInsets.symmetric(
-            //   horizontal: itemPadding.horizontal,
-            //   vertical: itemPadding.vertical,
-            // ),
-            decoration: BoxDecoration(
-              color: isSelected ? color.withOpacity(0.08) : Colors.transparent,
-              borderRadius: BorderRadius.circular(borderRadius),
-              border: isSelected 
-                  ? Border.all(color: color.withOpacity(0.2), width: 1)
-                  : null,
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Icon container
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: EdgeInsets.all(iconPadding),
-                  decoration: BoxDecoration(
-                    color: isSelected ? color : Colors.transparent,
-                    borderRadius: BorderRadius.circular(iconPadding + 2),
-                    boxShadow: isSelected && !isLandscape
-                        ? [
-                            BoxShadow(
-                              color: color.withOpacity(0.25),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: Icon(
-                    icon,
-                    color: isSelected ? Colors.white : Colors.grey[600],
-                    size: iconSize,
-                  ),
+          margin: EdgeInsets.symmetric(horizontal: isSmallScreen ? 2 : 6),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Icon Container
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOutCubic,
+                padding: EdgeInsets.all(_getIconPadding(context)),
+                decoration: BoxDecoration(
+                  color: isSelected ? color : Colors.transparent,
+                  borderRadius: BorderRadius.circular(_getIconPadding(context) + 4),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: color.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
                 ),
-                
-                // Spacing
-                SizedBox(height: spacing),
-                
-                // Label
-                AnimatedDefaultTextStyle(
-                  duration: const Duration(milliseconds: 200),
-                  style: TextStyle(
-                    color: isSelected ? color : Colors.grey[600],
-                    fontSize: fontSize,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                    height: 1.1, // Tight line height to save space
-                  ),
-                  child: Text(
-                    label,
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                child: Icon(
+                  icon,
+                  size: _getIconSize(context),
+                  color: isSelected ? Colors.white : Colors.grey[600],
                 ),
-              ],
-            ),
+              ),
+
+              // Spacing
+              SizedBox(height: _getLabelSpacing(context)),
+
+              // Label
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOutCubic,
+                style: TextStyle(
+                  fontSize: _getLabelFontSize(context),
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  color: isSelected ? color : Colors.grey[600],
+                ),
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+
+              // Selection Indicator
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOutCubic,
+                width: isSelected ? 20 : 0,
+                height: 2,
+                margin: const EdgeInsets.only(top: 4),
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(1),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  double _getCompactIconSize(bool isTablet, bool isSmallDevice, bool isLandscape) {
+  // Responsive dimension getters
+  double _getNavigationHeight(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth >= 768;
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    
     if (isLandscape) {
-      return isTablet ? 20 : (isSmallDevice ? 16 : 18);
+      return isTablet ? 65 : 55;
     }
-    return isTablet ? 22 : (isSmallDevice ? 18 : 20);
+    
+    if (isTablet) {
+      return 80;
+    }
+    
+    // For phones, use a percentage of screen height with min/max constraints
+    final dynamicHeight = screenHeight * 0.09;
+    return dynamicHeight.clamp(65.0, 85.0);
   }
 
-  double _getCompactFontSize(bool isTablet, bool isSmallDevice, bool isLandscape) {
-    if (isLandscape) {
-      return isTablet ? 11 : (isSmallDevice ? 9 : 10);
+  double _getHorizontalPadding(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    
+    if (screenWidth >= 768) {
+      return 32; // Tablet
+    } else if (screenWidth >= 375) {
+      return 20; // Regular phone
+    } else {
+      return 12; // Small phone
     }
-    return isTablet ? 12 : (isSmallDevice ? 9 : 11);
   }
 
-  double _getCompactIconPadding(bool isTablet, bool isSmallDevice, bool isLandscape) {
+  double _getVerticalPadding(BuildContext context) {
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth >= 768;
+    
     if (isLandscape) {
-      return isTablet ? 6 : (isSmallDevice ? 4 : 5);
+      return isTablet ? 8 : 6;
     }
-    return isTablet ? 8 : (isSmallDevice ? 5 : 6);
+    
+    return isTablet ? 12 : 8;
   }
 
-  ({double horizontal, double vertical}) _getCompactItemPadding(bool isSmallDevice, bool isLandscape) {
+  double _getIconSize(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    
     if (isLandscape) {
-      return (horizontal: isSmallDevice ? 4.0 : 6.0, vertical: 2.0);
+      return screenWidth >= 768 ? 22 : 18;
     }
-    return (horizontal: isSmallDevice ? 6.0 : 8.0, vertical: isSmallDevice ? 3.0 : 4.0);
+    
+    if (screenWidth >= 768) {
+      return 26; // Tablet
+    } else if (screenWidth >= 375) {
+      return 22; // Regular phone
+    } else {
+      return 20; // Small phone
+    }
+  }
+
+  double _getIconPadding(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    
+    if (isLandscape) {
+      return screenWidth >= 768 ? 8 : 6;
+    }
+    
+    if (screenWidth >= 768) {
+      return 10; // Tablet
+    } else if (screenWidth >= 375) {
+      return 8; // Regular phone
+    } else {
+      return 6; // Small phone
+    }
+  }
+
+  double _getLabelFontSize(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    
+    if (isLandscape) {
+      return screenWidth >= 768 ? 12 : 10;
+    }
+    
+    if (screenWidth >= 768) {
+      return 14; // Tablet
+    } else if (screenWidth >= 375) {
+      return 12; // Regular phone
+    } else {
+      return 11; // Small phone
+    }
+  }
+
+  double _getLabelSpacing(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    
+    if (isLandscape) {
+      return 2;
+    }
+    
+    return screenWidth >= 375 ? 4 : 3;
   }
 }
