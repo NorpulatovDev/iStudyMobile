@@ -558,25 +558,25 @@ class _BranchManagementPageState extends State<BranchManagementPage> {
                       const SizedBox(height: 6),
                       Row(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppTheme.primaryColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              'ID: ${branch.id}',
-                              style: TextStyle(
-                                color: AppTheme.primaryColor,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
+                          // Container(
+                          //   padding: const EdgeInsets.symmetric(
+                          //     horizontal: 8,
+                          //     vertical: 2,
+                          //   ),
+                          //   decoration: BoxDecoration(
+                          //     color: AppTheme.primaryColor.withOpacity(0.1),
+                          //     borderRadius: BorderRadius.circular(6),
+                          //   ),
+                          //   child: Text(
+                          //     'ID: ${branch.id}',
+                          //     style: const TextStyle(
+                          //       color: AppTheme.primaryColor,
+                          //       fontSize: 11,
+                          //       fontWeight: FontWeight.w600,
+                          //     ),
+                          //   ),
+                          // ),
+                          // const SizedBox(width: 8),
                           Icon(
                             Icons.access_time_rounded,
                             size: 12,

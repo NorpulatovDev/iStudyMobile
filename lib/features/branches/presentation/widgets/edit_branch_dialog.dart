@@ -5,15 +5,16 @@ import '../../../../core/injection/injection_container.dart';
 import '../../data/repositories/branch_repository.dart';
 import '../../data/models/branch_model.dart';
 import '../../data/models/create_branch_request.dart';
+import '../bloc/branch_bloc.dart';
 
 class EditBranchDialog extends StatefulWidget {
   final BranchModel branch;
-  final VoidCallback onBranchUpdated;
+  final VoidCallback? onBranchUpdated;
 
   const EditBranchDialog({
     super.key,
     required this.branch,
-    required this.onBranchUpdated,
+    this.onBranchUpdated,
   });
 
   @override
@@ -60,7 +61,13 @@ class _EditBranchDialogState extends State<EditBranchDialog> {
       
       if (mounted) {
         Navigator.of(context).pop();
-        widget.onBranchUpdated();
+        
+        // Trigger BLoC to reload branches
+        context.read<BranchBloc>().add(LoadBranches());
+        
+        // Call the callback if provided
+        widget.onBranchUpdated?.call();
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Branch "${_nameController.text}" updated successfully'),
@@ -89,11 +96,12 @@ class _EditBranchDialogState extends State<EditBranchDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: Row(
         children: [
           const Icon(Icons.edit, color: AppTheme.primaryColor),
           const SizedBox(width: 8),
-          Text('Edit ${widget.branch.name}'),
+          Expanded(child: Text('Edit ${widget.branch.name}')),
         ],
       ),
       content: Form(

@@ -169,10 +169,10 @@ class AdminBottomNavigation extends StatelessWidget {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeInOut,
-            padding: EdgeInsets.symmetric(
-              horizontal: itemPadding.horizontal,
-              vertical: itemPadding.vertical,
-            ),
+            // padding: EdgeInsets.symmetric(
+            //   horizontal: itemPadding.horizontal,
+            //   vertical: itemPadding.vertical,
+            // ),
             decoration: BoxDecoration(
               color: isSelected ? color.withOpacity(0.08) : Colors.transparent,
               borderRadius: BorderRadius.circular(borderRadius),

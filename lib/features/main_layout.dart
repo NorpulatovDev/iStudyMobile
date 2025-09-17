@@ -24,11 +24,12 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
   late PageController _pageController;
   late AnimationController _animationController;
 
-  final List<Widget> _pages = [
-    const ReportsPage(),
-    const BranchManagementPage(),
-    const UserManagementPage(),
-  ];
+  // Create BLoC instances once and reuse them
+  late final ReportBloc _reportBloc;
+  late final BranchBloc _branchBloc;
+  late final UserBloc _userBloc;
+
+  final List<Widget> _pages = [];
 
   @override
   void initState() {
@@ -38,12 +39,28 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
+
+    // Initialize BLoCs once
+    _reportBloc = ReportBloc(sl<ReportRepository>());
+    _branchBloc = BranchBloc(sl<BranchRepository>());
+    _userBloc = UserBloc(sl<UserRepository>());
+
+    // Initialize pages after BLoCs are created
+    _pages.addAll([
+      const ReportsPage(),
+      const BranchManagementPage(),
+      const UserManagementPage(),
+    ]);
   }
 
   @override
   void dispose() {
     _pageController.dispose();
     _animationController.dispose();
+    // Dispose BLoCs
+    _reportBloc.close();
+    _branchBloc.close();
+    _userBloc.close();
     super.dispose();
   }
 
@@ -69,30 +86,28 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
     return MultiBlocProvider(
       providers: [
         BlocProvider(
-          create: (context) => ReportBloc(sl<ReportRepository>()),
-        ),
-        BlocProvider(
-          create: (context) => BranchBloc(sl<BranchRepository>()),
-        ),
-        BlocProvider(
-          create: (context) => UserBloc(sl<UserRepository>()),
-        ),
+      create: (context) => ReportBloc(sl<ReportRepository>()),
+    ),
+    BlocProvider.value(value: context.read<BranchBloc>()),
+    BlocProvider.value(value: context.read<UserBloc>()),
       ],
       child: Scaffold(
         backgroundColor: const Color(0xFFF5F7FA),
-        body: PageView(
-          controller: _pageController,
-          onPageChanged: (index) {
-            setState(() {
-              _currentIndex = index;
-            });
-          },
-          children: _pages.map((page) {
-            return AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              child: page,
-            );
-          }).toList(),
+        body: SafeArea(
+          child: PageView(
+            controller: _pageController,
+            onPageChanged: (index) {
+              setState(() {
+                _currentIndex = index;
+              });
+            },
+            children: _pages.map((page) {
+              return AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: page,
+              );
+            }).toList(),
+          ),
         ),
         bottomNavigationBar: AdminBottomNavigation(
           currentIndex: _currentIndex,

@@ -17,16 +17,16 @@ class _UserManagementPageState extends State<UserManagementPage> {
   @override
   void initState() {
     super.initState();
+    // Load users when the page initializes
     context.read<UserBloc>().add(LoadUsers());
   }
 
   void _showCreateUserDialog() {
     showDialog(
       context: context,
-      builder: (context) => CreateUserDialog(
-        onUserCreated: () {
-          context.read<UserBloc>().add(LoadUsers());
-        },
+      builder: (dialogContext) => BlocProvider.value(
+        value: context.read<UserBloc>(),
+        child: const CreateUserDialog(),
       ),
     );
   }
@@ -34,11 +34,9 @@ class _UserManagementPageState extends State<UserManagementPage> {
   void _showEditUserDialog(UserModel user) {
     showDialog(
       context: context,
-      builder: (context) => EditUserDialog(
-        user: user,
-        onUserUpdated: () {
-          context.read<UserBloc>().add(LoadUsers());
-        },
+      builder: (dialogContext) => BlocProvider.value(
+        value: context.read<UserBloc>(),
+        child: EditUserDialog(user: user, onUserUpdated: () {}),
       ),
     );
   }
@@ -56,7 +54,11 @@ class _UserManagementPageState extends State<UserManagementPage> {
                 color: Colors.red.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.person_remove_rounded, color: Colors.red, size: 24),
+              child: const Icon(
+                Icons.person_remove_rounded,
+                color: Colors.red,
+                size: 24,
+              ),
             ),
             const SizedBox(width: 12),
             const Expanded(
@@ -97,7 +99,11 @@ class _UserManagementPageState extends State<UserManagementPage> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.info_rounded, color: Colors.orange, size: 16),
+                      const Icon(
+                        Icons.info_rounded,
+                        color: Colors.orange,
+                        size: 16,
+                      ),
                       const SizedBox(width: 6),
                       Text(
                         'User Details',
@@ -117,7 +123,10 @@ class _UserManagementPageState extends State<UserManagementPage> {
                   if (user.branchName != null)
                     Text(
                       'Branch: ${user.branchName}',
-                      style: const TextStyle(fontSize: 13, color: Colors.black87),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Colors.black87,
+                      ),
                     ),
                 ],
               ),
@@ -132,7 +141,11 @@ class _UserManagementPageState extends State<UserManagementPage> {
               ),
               child: const Row(
                 children: [
-                  Icon(Icons.warning_amber_rounded, color: Colors.red, size: 20),
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    color: Colors.red,
+                    size: 20,
+                  ),
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -154,20 +167,25 @@ class _UserManagementPageState extends State<UserManagementPage> {
             onPressed: () => Navigator.of(context).pop(),
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
+              // Use BLoC to delete user
               context.read<UserBloc>().add(DeleteUser(user.id));
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('User "${user.username}" deleted successfully'),
                   backgroundColor: Colors.red[600],
                   behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
               );
             },
@@ -175,7 +193,9 @@ class _UserManagementPageState extends State<UserManagementPage> {
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             child: const Text('Delete'),
           ),
@@ -209,7 +229,10 @@ class _UserManagementPageState extends State<UserManagementPage> {
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [Colors.purple, Colors.purple.withOpacity(0.8)],
+                            colors: [
+                              Colors.purple,
+                              Colors.purple.withOpacity(0.8),
+                            ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
@@ -222,7 +245,11 @@ class _UserManagementPageState extends State<UserManagementPage> {
                             ),
                           ],
                         ),
-                        child: const Icon(Icons.people_rounded, color: Colors.white, size: 24),
+                        child: const Icon(
+                          Icons.people_rounded,
+                          color: Colors.white,
+                          size: 24,
+                        ),
                       ),
                       const SizedBox(width: 16),
                       const Expanded(
@@ -248,6 +275,19 @@ class _UserManagementPageState extends State<UserManagementPage> {
                           ],
                         ),
                       ),
+                      // Refresh button
+                      IconButton(
+                        onPressed: () {
+                          context.read<UserBloc>().add(LoadUsers());
+                        },
+                        icon: const Icon(Icons.refresh_rounded),
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.grey[100],
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 20),
@@ -261,7 +301,9 @@ class _UserManagementPageState extends State<UserManagementPage> {
                         backgroundColor: Colors.purple,
                         foregroundColor: Colors.white,
                         elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(25),
+                        ),
                         shadowColor: Colors.purple.withOpacity(0.3),
                       ),
                       child: const Row(
@@ -271,7 +313,10 @@ class _UserManagementPageState extends State<UserManagementPage> {
                           SizedBox(width: 8),
                           Text(
                             'New User',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ],
                       ),
@@ -280,9 +325,9 @@ class _UserManagementPageState extends State<UserManagementPage> {
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 20),
-            
+
             // Users List
             Expanded(
               child: Padding(
@@ -325,7 +370,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                         ),
                       );
                     }
-                    
+
                     if (state is UserError) {
                       return Center(
                         child: Container(
@@ -350,8 +395,11 @@ class _UserManagementPageState extends State<UserManagementPage> {
                                   color: Colors.red.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(16),
                                 ),
-                                child: Icon(Icons.error_outline_rounded, 
-                                     color: Colors.red[600], size: 48),
+                                child: Icon(
+                                  Icons.error_outline_rounded,
+                                  color: Colors.red[600],
+                                  size: 48,
+                                ),
                               ),
                               const SizedBox(height: 20),
                               Text(
@@ -376,7 +424,9 @@ class _UserManagementPageState extends State<UserManagementPage> {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.red[600],
                                   foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                 ),
                                 child: const Text('Try Again'),
                               ),
@@ -385,10 +435,10 @@ class _UserManagementPageState extends State<UserManagementPage> {
                         ),
                       );
                     }
-                    
+
                     if (state is UsersLoaded) {
                       final users = state.users;
-                      
+
                       if (users.isEmpty) {
                         return Center(
                           child: Container(
@@ -413,8 +463,11 @@ class _UserManagementPageState extends State<UserManagementPage> {
                                     color: Colors.grey.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
-                                  child: Icon(Icons.people_outline_rounded, 
-                                       size: 64, color: Colors.grey[400]),
+                                  child: Icon(
+                                    Icons.people_outline_rounded,
+                                    size: 64,
+                                    color: Colors.grey[400],
+                                  ),
                                 ),
                                 const SizedBox(height: 24),
                                 Text(
@@ -437,8 +490,13 @@ class _UserManagementPageState extends State<UserManagementPage> {
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.purple,
                                     foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 24,
+                                      vertical: 12,
+                                    ),
                                   ),
                                   child: const Row(
                                     mainAxisSize: MainAxisSize.min,
@@ -454,7 +512,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                           ),
                         );
                       }
-                      
+
                       return ListView.builder(
                         itemCount: users.length,
                         itemBuilder: (context, index) {
@@ -463,7 +521,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                         },
                       );
                     }
-                    
+
                     return const SizedBox();
                   },
                 ),
@@ -505,8 +563,8 @@ class _UserManagementPageState extends State<UserManagementPage> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        _getRoleColor(user.role).withOpacity(0.1), 
-                        _getRoleColor(user.role).withOpacity(0.05)
+                        _getRoleColor(user.role).withOpacity(0.1),
+                        _getRoleColor(user.role).withOpacity(0.05),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
@@ -520,7 +578,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                   ),
                 ),
                 const SizedBox(width: 16),
-                
+
                 // User Info
                 Expanded(
                   child: Column(
@@ -539,12 +597,17 @@ class _UserManagementPageState extends State<UserManagementPage> {
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: _getRoleColor(user.role).withOpacity(0.1),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: _getRoleColor(user.role).withOpacity(0.3),
+                                color: _getRoleColor(
+                                  user.role,
+                                ).withOpacity(0.3),
                                 width: 1,
                               ),
                             ),
@@ -563,8 +626,11 @@ class _UserManagementPageState extends State<UserManagementPage> {
                       if (user.branchName != null) ...[
                         Row(
                           children: [
-                            Icon(Icons.business_rounded, 
-                                 size: 14, color: Colors.grey[500]),
+                            Icon(
+                              Icons.business_rounded,
+                              size: 14,
+                              color: Colors.grey[500],
+                            ),
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
@@ -583,24 +649,30 @@ class _UserManagementPageState extends State<UserManagementPage> {
                       ],
                       Row(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              'ID: ${user.id}',
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                          // Container(
+                          //   padding: const EdgeInsets.symmetric(
+                          //     horizontal: 8,
+                          //     vertical: 2,
+                          //   ),
+                          //   decoration: BoxDecoration(
+                          //     color: Colors.grey.withOpacity(0.1),
+                          //     borderRadius: BorderRadius.circular(6),
+                          //   ),
+                          //   child: Text(
+                          //     'ID: ${user.id}',
+                          //     style: TextStyle(
+                          //       color: Colors.grey[600],
+                          //       fontSize: 11,
+                          //       fontWeight: FontWeight.w600,
+                          //     ),
+                          //   ),
+                          // ),
+                          // const SizedBox(width: 8),
+                          Icon(
+                            Icons.access_time_rounded,
+                            size: 12,
+                            color: Colors.grey[400],
                           ),
-                          const SizedBox(width: 8),
-                          Icon(Icons.access_time_rounded, 
-                               size: 12, color: Colors.grey[400]),
                           const SizedBox(width: 4),
                           Text(
                             _formatDate(user.createdAt),
@@ -614,7 +686,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                     ],
                   ),
                 ),
-                
+
                 // Actions Menu
                 Container(
                   decoration: BoxDecoration(
@@ -629,14 +701,24 @@ class _UserManagementPageState extends State<UserManagementPage> {
                         _showDeleteConfirmation(user);
                       }
                     },
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    icon: Icon(Icons.more_vert_rounded, color: Colors.grey[600], size: 20),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    icon: Icon(
+                      Icons.more_vert_rounded,
+                      color: Colors.grey[600],
+                      size: 20,
+                    ),
                     itemBuilder: (context) => [
                       PopupMenuItem(
                         value: 'edit',
                         child: Row(
                           children: [
-                            Icon(Icons.edit_rounded, size: 18, color: Colors.blue[600]),
+                            Icon(
+                              Icons.edit_rounded,
+                              size: 18,
+                              color: Colors.blue[600],
+                            ),
                             const SizedBox(width: 12),
                             const Text('Edit', style: TextStyle(fontSize: 14)),
                           ],
@@ -646,9 +728,19 @@ class _UserManagementPageState extends State<UserManagementPage> {
                         value: 'delete',
                         child: Row(
                           children: [
-                            Icon(Icons.delete_rounded, size: 18, color: Colors.red[600]),
+                            Icon(
+                              Icons.delete_rounded,
+                              size: 18,
+                              color: Colors.red[600],
+                            ),
                             const SizedBox(width: 12),
-                            Text('Delete', style: TextStyle(fontSize: 14, color: Colors.red[600])),
+                            Text(
+                              'Delete',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.red[600],
+                              ),
+                            ),
                           ],
                         ),
                       ),

@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/injection/injection_container.dart';
+import '../../data/repositories/user_repository.dart';
+import '../../data/models/user_model.dart';
+import '../bloc/user_bloc.dart';
+import '../../../branches/data/models/branch_model.dart';
+import '../../../branches/data/repositories/branch_repository.dart';
 
 class CreateUserDialog extends StatefulWidget {
-  final VoidCallback onUserCreated;
+  final VoidCallback? onUserCreated;
 
   const CreateUserDialog({
     super.key,
-    required this.onUserCreated,
+    this.onUserCreated,
   });
 
   @override
@@ -17,9 +24,17 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   
-  String _selectedRole = 'ADMIN'; // Simplified for this example
+  String _selectedRole = 'ADMIN';
+  int? _selectedBranchId;
+  List<BranchModel> _branches = [];
   bool _isLoading = false;
   bool _obscurePassword = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBranches();
+  }
 
   @override
   void dispose() {
@@ -28,13 +43,98 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
     super.dispose();
   }
 
+  Future<void> _loadBranches() async {
+    try {
+      final repository = sl<BranchRepository>();
+      final branches = await repository.getAllBranches();
+      if (mounted) {
+        setState(() {
+          _branches = branches;
+          if (branches.isNotEmpty && _selectedRole == 'ADMIN') {
+            _selectedBranchId = branches.first.id;
+          }
+        });
+      }
+    } catch (e) {
+      // Handle error silently for now
+    }
+  }
+
+  Future<void> _createUser() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final repository = sl<UserRepository>();
+      final request = CreateUserRequest(
+        username: _usernameController.text.trim(),
+        password: _passwordController.text,
+        role: _selectedRole,
+        branchId: _selectedRole == 'ADMIN' ? _selectedBranchId : null,
+      );
+
+      await repository.createUser(request);
+      
+      if (mounted) {
+        Navigator.of(context).pop();
+        
+        // Trigger BLoC to reload users
+        context.read<UserBloc>().add(LoadUsers());
+        
+        // Call the callback if provided
+        widget.onUserCreated?.call();
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.white),
+                const SizedBox(width: 8),
+                Text('User "${_usernameController.text}" created successfully'),
+              ],
+            ),
+            backgroundColor: Colors.green[600],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_rounded, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(child: Text('Failed to create user: $e')),
+              ],
+            ),
+            backgroundColor: Colors.red[600],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: Container(
         width: MediaQuery.of(context).size.width * 0.9,
-        constraints: const BoxConstraints(maxWidth: 400, maxHeight: 600),
+        constraints: const BoxConstraints(maxWidth: 400, maxHeight: 700),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
@@ -222,10 +322,52 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
                           onChanged: (value) {
                             setState(() {
                               _selectedRole = value!;
+                              if (_selectedRole == 'SUPER_ADMIN') {
+                                _selectedBranchId = null;
+                              } else if (_branches.isNotEmpty) {
+                                _selectedBranchId = _selectedBranchId ?? _branches.first.id;
+                              }
                             });
                           },
                         ),
                       ),
+                      
+                      const SizedBox(height: 16),
+                      
+                      // Branch Selection (only for ADMIN role)
+                      if (_selectedRole == 'ADMIN') ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[50],
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.grey[200]!),
+                          ),
+                          child: DropdownButtonFormField<int>(
+                            value: _selectedBranchId,
+                            decoration: const InputDecoration(
+                              labelText: 'Assigned Branch',
+                              prefixIcon: Icon(Icons.business_rounded),
+                              border: InputBorder.none,
+                            ),
+                            items: _branches.map((branch) => DropdownMenuItem(
+                              value: branch.id,
+                              child: Text(branch.name),
+                            )).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedBranchId = value;
+                              });
+                            },
+                            validator: (value) {
+                              if (_selectedRole == 'ADMIN' && value == null) {
+                                return 'Please select a branch for ADMIN role';
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                      ],
                       
                       const SizedBox(height: 24),
                       
@@ -253,13 +395,7 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: ElevatedButton(
-                              onPressed: _isLoading ? null : () {
-                                if (_formKey.currentState!.validate()) {
-                                  // Handle create user logic here
-                                  Navigator.of(context).pop();
-                                  widget.onUserCreated();
-                                }
-                              },
+                              onPressed: _isLoading ? null : _createUser,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.purple,
                                 foregroundColor: Colors.white,

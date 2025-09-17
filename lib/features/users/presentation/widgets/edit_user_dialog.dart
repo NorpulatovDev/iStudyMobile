@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:istudy/features/users/presentation/bloc/user_bloc.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/injection/injection_container.dart';
 import '../../data/repositories/user_repository.dart';
@@ -82,7 +83,13 @@ class _EditUserDialogState extends State<EditUserDialog> {
       
       if (mounted) {
         Navigator.of(context).pop();
-        widget.onUserUpdated();
+        
+        // Trigger BLoC to reload users
+        context.read<UserBloc>().add(LoadUsers());
+        
+        // Call the callback if provided
+        widget.onUserUpdated?.call();
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('User "${_usernameController.text}" updated successfully'),

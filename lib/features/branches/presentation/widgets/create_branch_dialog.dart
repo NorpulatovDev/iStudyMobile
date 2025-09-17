@@ -4,13 +4,14 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/injection/injection_container.dart';
 import '../../data/repositories/branch_repository.dart';
 import '../../data/models/create_branch_request.dart';
+import '../bloc/branch_bloc.dart';
 
 class CreateBranchDialog extends StatefulWidget {
-  final VoidCallback onBranchCreated;
+  final VoidCallback? onBranchCreated;
 
   const CreateBranchDialog({
     super.key,
-    required this.onBranchCreated,
+    this.onBranchCreated,
   });
 
   @override
@@ -50,7 +51,13 @@ class _CreateBranchDialogState extends State<CreateBranchDialog> {
       
       if (mounted) {
         Navigator.of(context).pop();
-        widget.onBranchCreated();
+        
+        // Trigger BLoC to reload branches
+        context.read<BranchBloc>().add(LoadBranches());
+        
+        // Call the callback if provided
+        widget.onBranchCreated?.call();
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
