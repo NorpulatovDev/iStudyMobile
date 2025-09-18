@@ -26,11 +26,16 @@ class _CourseManagementPageState extends State<CourseManagementPage> {
   void _showCreateCourseDialog() {
     showDialog(
       context: context,
-      builder: (context) => CreateCourseDialog(
-        onCourseCreated: () {
-          context.read<CourseBloc>().add(LoadCoursesByBranch(widget.branchId));
-        },
-        branchId: widget.branchId,
+      barrierDismissible: false, // Prevent accidental dismissal
+      builder: (dialogContext) => BlocProvider.value(
+        value: context.read<CourseBloc>(),
+        child: CreateCourseDialog(
+          branchId: widget.branchId,
+          onCourseCreated: () {
+            // The dialog will handle success feedback
+            // BLoC will automatically reload courses
+          },
+        ),
       ),
     );
   }
@@ -38,12 +43,17 @@ class _CourseManagementPageState extends State<CourseManagementPage> {
   void _showEditCourseDialog(CourseModel course) {
     showDialog(
       context: context,
-      builder: (context) => EditCourseDialog(
-        course: course,
-        onCourseUpdated: () {
-          context.read<CourseBloc>().add(LoadCoursesByBranch(widget.branchId));
-        },
-        branchId: widget.branchId,
+      barrierDismissible: false,
+      builder: (dialogContext) => BlocProvider.value(
+        value: context.read<CourseBloc>(),
+        child: EditCourseDialog(
+          course: course,
+          branchId: widget.branchId,
+          onCourseUpdated: () {
+            // The dialog will handle success feedback
+            // BLoC will automatically reload courses
+          },
+        ),
       ),
     );
   }
@@ -56,9 +66,11 @@ class _CourseManagementPageState extends State<CourseManagementPage> {
   }
 
   void _showDeleteConfirmation(CourseModel course) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
+  showDialog(
+    context: context,
+    builder: (dialogContext) => BlocProvider.value(
+      value: context.read<CourseBloc>(),
+      child: AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
@@ -155,7 +167,7 @@ class _CourseManagementPageState extends State<CourseManagementPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               shape: RoundedRectangleBorder(
@@ -164,35 +176,122 @@ class _CourseManagementPageState extends State<CourseManagementPage> {
             ),
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              context.read<CourseBloc>().add(DeleteCourse(course.id));
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Course "${course.name}" deleted successfully'),
-                  backgroundColor: Colors.red[600],
-                  behavior: SnackBarBehavior.floating,
+          BlocConsumer<CourseBloc, CourseState>(
+            listener: (context, state) {
+              if (state is CourseOperationSuccess) {
+                Navigator.of(dialogContext).pop();
+                // Success feedback will be handled by the main page listener
+              } else if (state is CourseOperationError) {
+                // Error feedback will be handled by the main page listener
+                Navigator.of(dialogContext).pop();
+              }
+            },
+            builder: (context, state) {
+              final isLoading = state is CourseOperationLoading;
+              return ElevatedButton(
+                onPressed: isLoading ? null : () {
+                  context.read<CourseBloc>().add(DeleteCourse(course.id));
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
+                child: isLoading 
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : const Text('Delete'),
               );
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            child: const Text('Delete'),
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
+
+  Widget _buildEmptyState() {
+  return Center(
+    child: Container(
+      padding: const EdgeInsets.all(40),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.grey.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Icon(
+              Icons.school_outlined,
+              size: 64,
+              color: Colors.grey[400],
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'No courses yet',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Create your first course to get started',
+            style: TextStyle(color: Colors.grey[500]),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: _showCreateCourseDialog,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.indigo,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 12,
+              ),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.add_rounded),
+                SizedBox(width: 8),
+                Text('Create First Course'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -215,6 +314,19 @@ class _CourseManagementPageState extends State<CourseManagementPage> {
                 children: [
                   Row(
                     children: [
+                      // Back Button
+                      IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.arrow_back_ios_rounded),
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.grey[100],
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
@@ -318,6 +430,52 @@ class _CourseManagementPageState extends State<CourseManagementPage> {
 
             const SizedBox(height: 20),
 
+            // Operation Status Listener
+            BlocListener<CourseBloc, CourseState>(
+              listener: (context, state) {
+                if (state is CourseOperationSuccess) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          const Icon(Icons.check_circle_rounded, color: Colors.white),
+                          const SizedBox(width: 8),
+                          Text(state.message),
+                        ],
+                      ),
+                      backgroundColor: Colors.green[600],
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  );
+                  // Reset to loaded state after showing success
+                  context.read<CourseBloc>().add(ResetCourseState());
+                } else if (state is CourseOperationError) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          const Icon(Icons.error_rounded, color: Colors.white),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(state.message)),
+                        ],
+                      ),
+                      backgroundColor: Colors.red[600],
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  );
+                  // Reset to loaded state after showing error
+                  context.read<CourseBloc>().add(ResetCourseState());
+                }
+              },
+              child: const SizedBox.shrink(),
+            ),
+
             // Courses List
             Expanded(
               child: Padding(
@@ -325,190 +483,31 @@ class _CourseManagementPageState extends State<CourseManagementPage> {
                 child: BlocBuilder<CourseBloc, CourseState>(
                   builder: (context, state) {
                     if (state is CourseLoading) {
-                      return Center(
-                        child: Container(
-                          padding: const EdgeInsets.all(40),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 15,
-                                offset: const Offset(0, 5),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const CircularProgressIndicator(
-                                color: Colors.indigo,
-                                strokeWidth: 3,
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Loading courses...',
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
+                      return _buildLoadingState();
                     }
 
                     if (state is CourseError) {
-                      return Center(
-                        child: Container(
-                          padding: const EdgeInsets.all(32),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 15,
-                                offset: const Offset(0, 5),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: Colors.red.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Icon(
-                                  Icons.error_outline_rounded,
-                                  color: Colors.red[600],
-                                  size: 48,
-                                ),
-                              ),
-                              const SizedBox(height: 20),
-                              Text(
-                                'Failed to load courses',
-                                style: TextStyle(
-                                  color: Colors.red[600],
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                state.message,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: Colors.grey[600]),
-                              ),
-                              const SizedBox(height: 20),
-                              ElevatedButton(
-                                onPressed: () {
-                                  context.read<CourseBloc>().add(LoadCoursesByBranch(1));
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.red[600],
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                child: const Text('Try Again'),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
+                      return _buildErrorState(state.message);
                     }
 
                     if (state is CoursesLoaded) {
                       final courses = state.courses;
 
                       if (courses.isEmpty) {
-                        return Center(
-                          child: Container(
-                            padding: const EdgeInsets.all(40),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
-                                  blurRadius: 15,
-                                  offset: const Offset(0, 5),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(20),
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Icon(
-                                    Icons.school_outlined,
-                                    size: 64,
-                                    color: Colors.grey[400],
-                                  ),
-                                ),
-                                const SizedBox(height: 24),
-                                Text(
-                                  'No courses yet',
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Create your first course to get started',
-                                  style: TextStyle(color: Colors.grey[500]),
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 24),
-                                ElevatedButton(
-                                  onPressed: _showCreateCourseDialog,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.indigo,
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 24,
-                                      vertical: 12,
-                                    ),
-                                  ),
-                                  child: const Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.add_rounded),
-                                      SizedBox(width: 8),
-                                      Text('Create First Course'),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
+                        return _buildEmptyState();
                       }
 
-                      return ListView.builder(
-                        itemCount: courses.length,
-                        itemBuilder: (context, index) {
-                          final course = courses[index];
-                          return _buildCourseCard(course);
+                      return RefreshIndicator(
+                        onRefresh: () async {
+                          context.read<CourseBloc>().add(LoadCoursesByBranch(widget.branchId));
                         },
+                        child: ListView.builder(
+                          itemCount: courses.length,
+                          itemBuilder: (context, index) {
+                            final course = courses[index];
+                            return _buildCourseCard(course);
+                          },
+                        ),
                       );
                     }
 
@@ -516,6 +515,108 @@ class _CourseManagementPageState extends State<CourseManagementPage> {
                   },
                 ),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.all(40),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(
+              color: Colors.indigo,
+              strokeWidth: 3,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Loading courses...',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState(String message) {
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(
+                Icons.error_outline_rounded,
+                color: Colors.red[600],
+                size: 48,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Failed to load courses',
+              style: TextStyle(
+                color: Colors.red[600],
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                context.read<CourseBloc>().add(LoadCoursesByBranch(widget.branchId));
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red[600],
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text('Try Again'),
             ),
           ],
         ),
@@ -603,7 +704,7 @@ class _CourseManagementPageState extends State<CourseManagementPage> {
                                   ),
                                 ),
                                 child: Text(
-                                  '\${_formatPrice(course.price)}',
+                                  '${_formatPrice(course.price)}',
                                   style: TextStyle(
                                     color: Colors.green[700],
                                     fontSize: 12,

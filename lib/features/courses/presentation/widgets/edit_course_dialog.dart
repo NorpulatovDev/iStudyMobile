@@ -34,7 +34,7 @@ class _EditCourseDialogState extends State<EditCourseDialog> {
   
   late int? _selectedBranchId;
   List<BranchModel> _branches = [];
-  bool _isLoading = false;
+  bool _isLoadingBranches = true;
 
   @override
   void initState() {
@@ -63,165 +63,162 @@ class _EditCourseDialogState extends State<EditCourseDialog> {
       if (mounted) {
         setState(() {
           _branches = branches;
+          _isLoadingBranches = false;
+          
+          // Ensure the selected branch exists in the list
+          if (!branches.any((b) => b.id == _selectedBranchId) && branches.isNotEmpty) {
+            _selectedBranchId = branches.first.id;
+          }
         });
       }
     } catch (e) {
-      // Handle error silently for now
+      if (mounted) {
+        setState(() {
+          _isLoadingBranches = false;
+        });
+        _showErrorSnackBar('Failed to load branches: $e');
+      }
     }
   }
 
-  Future<void> _updateCourse() async {
+  void _updateCourse() {
     if (!_formKey.currentState!.validate()) return;
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final repository = sl<CourseRepository>();
-      final request = CreateCourseRequest(
-        name: _nameController.text.trim(),
-        description: _descriptionController.text.trim().isNotEmpty 
-            ? _descriptionController.text.trim() 
-            : null,
-        price: int.parse(_priceController.text),
-        durationMonths: int.parse(_durationController.text),
-        branchId: _selectedBranchId!,
-      );
-
-      await repository.updateCourse(widget.course.id, request);
-      
-      if (mounted) {
-        Navigator.of(context).pop();
-        
-        // Trigger BLoC to reload courses
-        context.read<CourseBloc>().add(LoadCoursesByBranch(widget.branchId));
-        
-        // Call the callback if provided
-        widget.onCourseUpdated?.call();
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.check_circle_rounded, color: Colors.white),
-                const SizedBox(width: 8),
-                Text('Course "${_nameController.text}" updated successfully'),
-              ],
-            ),
-            backgroundColor: Colors.green[600],
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.error_rounded, color: Colors.white),
-                const SizedBox(width: 8),
-                Expanded(child: Text('Failed to update course: $e')),
-              ],
-            ),
-            backgroundColor: Colors.red[600],
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+    if (_selectedBranchId == null) {
+      _showErrorSnackBar('Please select a branch');
+      return;
     }
+
+    final request = CreateCourseRequest(
+      name: _nameController.text.trim(),
+      description: _descriptionController.text.trim().isNotEmpty 
+          ? _descriptionController.text.trim() 
+          : null,
+      price: int.parse(_priceController.text),
+      durationMonths: int.parse(_durationController.text),
+      branchId: _selectedBranchId!,
+    );
+
+    context.read<CourseBloc>().add(UpdateCourse(
+      courseId: widget.course.id,
+      request: request,
+    ));
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_rounded, color: Colors.white),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.red[600],
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_rounded, color: Colors.white),
+            const SizedBox(width: 8),
+            Text(message),
+          ],
+        ),
+        backgroundColor: Colors.green[600],
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      child: Container(
-        width: MediaQuery.of(context).size.width * 0.9,
-        constraints: const BoxConstraints(maxWidth: 400, maxHeight: 700),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.05),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(24),
-                  topRight: Radius.circular(24),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.orange,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.edit_rounded, color: Colors.white, size: 20),
+    return BlocListener<CourseBloc, CourseState>(
+      listener: (context, state) {
+        if (state is CourseOperationSuccess) {
+          Navigator.of(context).pop();
+          _showSuccessSnackBar(state.message);
+          widget.onCourseUpdated?.call();
+        } else if (state is CourseOperationError) {
+          _showErrorSnackBar(state.message);
+        }
+      },
+      child: Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.9,
+          constraints: const BoxConstraints(maxWidth: 400, maxHeight: 700),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.05),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Edit ${widget.course.name}',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1F2937),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.orange,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.edit_rounded, color: Colors.white, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Edit ${widget.course.name}',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1F2937),
+                        ),
                       ),
                     ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: Icon(Icons.close_rounded, color: Colors.grey[600]),
-                    style: IconButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: Icon(Icons.close_rounded, color: Colors.grey[600]),
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            
-            // Content
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-                      // Course Name Field
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.grey[50],
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.grey[200]!),
-                        ),
-                        child: TextFormField(
+              
+              // Content
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      children: [
+                        // Course Name Field
+                        _buildTextField(
                           controller: _nameController,
-                          decoration: const InputDecoration(
-                            labelText: 'Course Name',
-                            hintText: 'Enter course name',
-                            prefixIcon: Icon(Icons.school_outlined),
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                          ),
+                          label: 'Course Name',
+                          hint: 'Enter course name',
+                          icon: Icons.school_outlined,
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
                               return 'Course name is required';
@@ -232,53 +229,30 @@ class _EditCourseDialogState extends State<EditCourseDialog> {
                             return null;
                           },
                         ),
-                      ),
-                      
-                      const SizedBox(height: 16),
-                      
-                      // Description Field
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.grey[50],
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.grey[200]!),
-                        ),
-                        child: TextFormField(
+                        
+                        const SizedBox(height: 16),
+                        
+                        // Description Field
+                        _buildTextField(
                           controller: _descriptionController,
-                          decoration: const InputDecoration(
-                            labelText: 'Description (Optional)',
-                            hintText: 'Enter course description',
-                            prefixIcon: Icon(Icons.description_outlined),
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                          ),
+                          label: 'Description (Optional)',
+                          hint: 'Enter course description',
+                          icon: Icons.description_outlined,
                           maxLines: 3,
-                          minLines: 1,
                         ),
-                      ),
-                      
-                      const SizedBox(height: 16),
-                      
-                      // Price and Duration Row
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.grey[50],
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: Colors.grey[200]!),
-                              ),
-                              child: TextFormField(
+                        
+                        const SizedBox(height: 16),
+                        
+                        // Price and Duration Row
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildTextField(
                                 controller: _priceController,
+                                label: 'Price',
+                                hint: 'Enter price',
+                                icon: Icons.attach_money_rounded,
                                 keyboardType: TextInputType.number,
-                                decoration: const InputDecoration(
-                                  labelText: 'Price',
-                                  hintText: 'Enter price',
-                                  prefixIcon: Icon(Icons.attach_money_rounded),
-                                  border: InputBorder.none,
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                                ),
                                 validator: (value) {
                                   if (value == null || value.trim().isEmpty) {
                                     return 'Price is required';
@@ -290,182 +264,228 @@ class _EditCourseDialogState extends State<EditCourseDialog> {
                                 },
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.grey[50],
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: Colors.grey[200]!),
-                              ),
-                              child: TextFormField(
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _buildTextField(
                                 controller: _durationController,
+                                label: 'Duration (months)',
+                                hint: 'Months',
+                                icon: Icons.schedule_rounded,
                                 keyboardType: TextInputType.number,
-                                decoration: const InputDecoration(
-                                  labelText: 'Duration (months)',
-                                  hintText: 'Months',
-                                  prefixIcon: Icon(Icons.schedule_rounded),
-                                  border: InputBorder.none,
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                                ),
                                 validator: (value) {
                                   if (value == null || value.trim().isEmpty) {
                                     return 'Duration is required';
                                   }
-                                  if (int.tryParse(value) == null || int.parse(value) <= 0) {
-                                    return 'Enter valid duration';
+                                  final duration = int.tryParse(value);
+                                  if (duration == null || duration <= 0 || duration > 60) {
+                                    return 'Enter valid duration (1-60 months)';
                                   }
                                   return null;
                                 },
                               ),
                             ),
+                          ],
+                        ),
+                        
+                        const SizedBox(height: 16),
+                        
+                        // Branch Selection
+                        _buildBranchDropdown(),
+                        
+                        const SizedBox(height: 16),
+                        
+                        // Course Info Display (Read-only)
+                        if (widget.course.groups.isNotEmpty) ...[
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.blue.withOpacity(0.2)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(Icons.info_outline, color: Colors.blue[600], size: 20),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Course Information',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.blue[700],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'This course has ${widget.course.groups.length} active group${widget.course.groups.length > 1 ? 's' : ''}.',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.blue[600],
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Created: ${_formatDate(widget.course.createdAt)}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.blue[600],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
+                          const SizedBox(height: 16),
                         ],
-                      ),
-                      
-                      const SizedBox(height: 16),
-                      
-                      // Branch Selection
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[50],
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.grey[200]!),
-                        ),
-                        child: DropdownButtonFormField<int>(
-                          value: _selectedBranchId,
-                          decoration: const InputDecoration(
-                            labelText: 'Branch',
-                            prefixIcon: Icon(Icons.business_rounded),
-                            border: InputBorder.none,
-                          ),
-                          items: _branches.map((branch) => DropdownMenuItem(
-                            value: branch.id,
-                            child: Text(branch.name),
-                          )).toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedBranchId = value;
-                            });
-                          },
-                          validator: (value) {
-                            if (value == null) {
-                              return 'Please select a branch';
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 16),
-                      
-                      // Course Info Display (Read-only)
-                      if (widget.course.groups.isNotEmpty) ...[
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.withOpacity(0.05),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.blue.withOpacity(0.2)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(Icons.info_outline, color: Colors.blue[600], size: 20),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Course Information',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.blue[700],
+                        
+                        // Action Buttons
+                        BlocBuilder<CourseBloc, CourseState>(
+                          builder: (context, state) {
+                            final isLoading = state is CourseOperationLoading;
+                            
+                            return Row(
+                              children: [
+                                Expanded(
+                                  child: TextButton(
+                                    onPressed: isLoading ? null : () => Navigator.of(context).pop(),
+                                    style: TextButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(vertical: 16),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      backgroundColor: Colors.grey[100],
+                                    ),
+                                    child: Text(
+                                      'Cancel',
+                                      style: TextStyle(
+                                        color: Colors.grey[700],
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                   ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'This course has ${widget.course.groups.length} active group${widget.course.groups.length > 1 ? 's' : ''}.',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.blue[600],
                                 ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Created: ${_formatDate(widget.course.createdAt)}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.blue[600],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                      
-                      // Action Buttons
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextButton(
-                              onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
-                              style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                backgroundColor: Colors.grey[100],
-                              ),
-                              child: Text(
-                                'Cancel',
-                                style: TextStyle(
-                                  color: Colors.grey[700],
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: _isLoading ? null : _updateCourse,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.orange,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                elevation: 0,
-                              ),
-                              child: _isLoading
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                      ),
-                                    )
-                                  : const Text(
-                                      'Update',
-                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: isLoading ? null : _updateCourse,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.orange,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(vertical: 16),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      elevation: 0,
                                     ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                                    child: isLoading
+                                        ? const SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                            ),
+                                          )
+                                        : const Text(
+                                            'Update',
+                                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                                          ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    TextInputType? keyboardType,
+    int? maxLines,
+    String? Function(String?)? validator,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: TextFormField(
+        controller: controller,
+        keyboardType: keyboardType,
+        maxLines: maxLines ?? 1,
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: hint,
+          prefixIcon: Icon(icon),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        ),
+        validator: validator,
+      ),
+    );
+  }
+
+  Widget _buildBranchDropdown() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: _isLoadingBranches
+          ? const Padding(
+              padding: EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  SizedBox(width: 12),
+                  Text('Loading branches...'),
+                ],
+              ),
+            )
+          : DropdownButtonFormField<int>(
+              value: _selectedBranchId,
+              decoration: const InputDecoration(
+                labelText: 'Branch',
+                prefixIcon: Icon(Icons.business_rounded),
+                border: InputBorder.none,
+              ),
+              items: _branches.map((branch) => DropdownMenuItem(
+                value: branch.id,
+                child: Text(branch.name),
+              )).toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedBranchId = value;
+                });
+              },
+              validator: (value) {
+                if (value == null) {
+                  return 'Please select a branch';
+                }
+                return null;
+              },
+            ),
     );
   }
 

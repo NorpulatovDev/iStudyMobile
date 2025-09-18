@@ -53,11 +53,13 @@ class CreateUserRequest extends Equatable {
 class UpdateUserRequest extends Equatable {
   final String username;
   final String role;
+  final String? password;
   final int? branchId;
 
   const UpdateUserRequest({
     required this.username,
     required this.role,
+    this.password,
     this.branchId,
   });
 
@@ -65,5 +67,5 @@ class UpdateUserRequest extends Equatable {
   Map<String, dynamic> toJson() => _$UpdateUserRequestToJson(this);
 
   @override
-  List<Object?> get props => [username, role, branchId];
+  List<Object?> get props => [username, role, branchId, password];
 }

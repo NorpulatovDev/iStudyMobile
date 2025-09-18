@@ -7,7 +7,7 @@ sealed class CourseEvent extends Equatable {
   List<Object> get props => [];
 }
 
-
+class LoadAllCourses extends CourseEvent {}
 
 class LoadCoursesByBranch extends CourseEvent {
   final int branchId;
@@ -48,3 +48,5 @@ class DeleteCourse extends CourseEvent {
   @override
   List<Object> get props => [courseId];
 }
+
+class ResetCourseState extends CourseEvent {}

@@ -1,11 +1,15 @@
+// lib/features/branches/presentation/pages/branch_management_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:istudy/features/courses/presentation/pages/course_management_page.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/injection/injection_container.dart';
 import '../bloc/branch_bloc.dart';
 import '../../data/models/branch_model.dart';
 import '../widgets/create_branch_dialog.dart';
 import '../widgets/edit_branch_dialog.dart';
+import '../../../courses/data/repositories/course_repository.dart';
+import '../../../courses/presentation/bloc/course_bloc.dart';
 
 class BranchManagementPage extends StatefulWidget {
   const BranchManagementPage({super.key});
@@ -24,10 +28,14 @@ class _BranchManagementPageState extends State<BranchManagementPage> {
   void _showCreateBranchDialog() {
     showDialog(
       context: context,
-      builder: (context) => CreateBranchDialog(
-        onBranchCreated: () {
-          context.read<BranchBloc>().add(LoadBranches());
-        },
+      barrierDismissible: false,
+      builder: (dialogContext) => BlocProvider.value(
+        value: context.read<BranchBloc>(),
+        child: CreateBranchDialog(
+          onBranchCreated: () {
+            context.read<BranchBloc>().add(LoadBranches());
+          },
+        ),
       ),
     );
   }
@@ -35,11 +43,27 @@ class _BranchManagementPageState extends State<BranchManagementPage> {
   void _showEditBranchDialog(BranchModel branch) {
     showDialog(
       context: context,
-      builder: (context) => EditBranchDialog(
-        branch: branch,
-        onBranchUpdated: () {
-          context.read<BranchBloc>().add(LoadBranches());
-        },
+      barrierDismissible: false,
+      builder: (dialogContext) => BlocProvider.value(
+        value: context.read<BranchBloc>(),
+        child: EditBranchDialog(
+          branch: branch,
+          onBranchUpdated: () {
+            context.read<BranchBloc>().add(LoadBranches());
+          },
+        ),
+      ),
+    );
+  }
+
+  void _navigateToCourseManagement(BranchModel branch) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BlocProvider(
+          create: (context) => CourseBloc(sl<CourseRepository>()),
+          child: CourseManagementPage(branchId: branch.id),
+        ),
       ),
     );
   }
@@ -221,6 +245,19 @@ class _BranchManagementPageState extends State<BranchManagementPage> {
                               ),
                             ),
                           ],
+                        ),
+                      ),
+                      // Refresh button
+                      IconButton(
+                        onPressed: () {
+                          context.read<BranchBloc>().add(LoadBranches());
+                        },
+                        icon: const Icon(Icons.refresh_rounded),
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.grey[100],
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
                       ),
                     ],
@@ -452,12 +489,17 @@ class _BranchManagementPageState extends State<BranchManagementPage> {
                         );
                       }
 
-                      return ListView.builder(
-                        itemCount: branches.length,
-                        itemBuilder: (context, index) {
-                          final branch = branches[index];
-                          return _buildBranchCard(branch);
+                      return RefreshIndicator(
+                        onRefresh: () async {
+                          context.read<BranchBloc>().add(LoadBranches());
                         },
+                        child: ListView.builder(
+                          itemCount: branches.length,
+                          itemBuilder: (context, index) {
+                            final branch = branches[index];
+                            return _buildBranchCard(branch);
+                          },
+                        ),
                       );
                     }
 
@@ -491,14 +533,7 @@ class _BranchManagementPageState extends State<BranchManagementPage> {
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => CourseManagementPage(branchId: branch.id),
-              ),
-            );
-          },
+          onTap: () => _navigateToCourseManagement(branch),
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Row(
@@ -530,13 +565,49 @@ class _BranchManagementPageState extends State<BranchManagementPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        branch.name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
-                          color: Color(0xFF1F2937),
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              branch.name,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                                color: Color(0xFF1F2937),
+                              ),
+                            ),
+                          ),
+                          // Navigation indicator
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.school_rounded,
+                                  size: 12,
+                                  color: AppTheme.primaryColor,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Courses',
+                                  style: TextStyle(
+                                    color: AppTheme.primaryColor,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                       if (branch.address != null &&
                           branch.address!.isNotEmpty) ...[
@@ -566,25 +637,6 @@ class _BranchManagementPageState extends State<BranchManagementPage> {
                       const SizedBox(height: 6),
                       Row(
                         children: [
-                          // Container(
-                          //   padding: const EdgeInsets.symmetric(
-                          //     horizontal: 8,
-                          //     vertical: 2,
-                          //   ),
-                          //   decoration: BoxDecoration(
-                          //     color: AppTheme.primaryColor.withOpacity(0.1),
-                          //     borderRadius: BorderRadius.circular(6),
-                          //   ),
-                          //   child: Text(
-                          //     'ID: ${branch.id}',
-                          //     style: const TextStyle(
-                          //       color: AppTheme.primaryColor,
-                          //       fontSize: 11,
-                          //       fontWeight: FontWeight.w600,
-                          //     ),
-                          //   ),
-                          // ),
-                          // const SizedBox(width: 8),
                           Icon(
                             Icons.access_time_rounded,
                             size: 12,
@@ -598,13 +650,19 @@ class _BranchManagementPageState extends State<BranchManagementPage> {
                               fontSize: 11,
                             ),
                           ),
+                          const Spacer(),
+                          Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            size: 16,
+                            color: Colors.grey[400],
+                          ),
                         ],
                       ),
                     ],
                   ),
                 ),
 
-                // Actions
+                // Actions Menu
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.grey.withOpacity(0.1),

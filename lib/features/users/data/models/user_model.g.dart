@@ -44,6 +44,7 @@ UpdateUserRequest _$UpdateUserRequestFromJson(Map<String, dynamic> json) =>
     UpdateUserRequest(
       username: json['username'] as String,
       role: json['role'] as String,
+      password: json['password'] as String?,
       branchId: (json['branchId'] as num?)?.toInt(),
     );
 
@@ -51,5 +52,6 @@ Map<String, dynamic> _$UpdateUserRequestToJson(UpdateUserRequest instance) =>
     <String, dynamic>{
       'username': instance.username,
       'role': instance.role,
+      'password': instance.password,
       'branchId': instance.branchId,
     };
