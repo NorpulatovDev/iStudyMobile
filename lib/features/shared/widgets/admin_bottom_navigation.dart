@@ -14,6 +14,12 @@ class AdminBottomNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final screenHeight = mediaQuery.size.height;
+    final screenWidth = mediaQuery.size.width;
+    final isLandscape = mediaQuery.orientation == Orientation.landscape;
+    final bottomPadding = mediaQuery.padding.bottom;
+    
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -32,13 +38,19 @@ class AdminBottomNavigation extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: Container(
-          height: _getNavigationHeight(context),
-          padding: EdgeInsets.symmetric(
-            horizontal: _getHorizontalPadding(context),
-            vertical: _getVerticalPadding(context),
+          constraints: BoxConstraints(
+            minHeight: _getMinNavigationHeight(context),
+            maxHeight: _getMaxNavigationHeight(context),
+          ),
+          padding: EdgeInsets.only(
+            left: _getHorizontalPadding(context),
+            right: _getHorizontalPadding(context),
+            top: _getTopPadding(context),
+            bottom: _getBottomPadding(context, bottomPadding),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               _buildNavItem(
                 context: context,
@@ -78,13 +90,17 @@ class AdminBottomNavigation extends StatelessWidget {
     final isSelected = currentIndex == index;
     final screenWidth = MediaQuery.of(context).size.width;
     final isSmallScreen = screenWidth < 375;
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
     
     return Expanded(
       child: GestureDetector(
         onTap: () => onTap(index),
         behavior: HitTestBehavior.opaque,
         child: Container(
-          margin: EdgeInsets.symmetric(horizontal: isSmallScreen ? 2 : 6),
+          margin: EdgeInsets.symmetric(horizontal: isSmallScreen ? 2 : 4),
+          constraints: BoxConstraints(
+            minHeight: _getItemMinHeight(context),
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
@@ -114,33 +130,37 @@ class AdminBottomNavigation extends StatelessWidget {
                 ),
               ),
 
-              // Spacing
-              SizedBox(height: _getLabelSpacing(context)),
+              // Spacing - only add if not in landscape on small screens
+              if (!isLandscape || screenWidth >= 768)
+                SizedBox(height: _getLabelSpacing(context)),
 
-              // Label
-              AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 250),
-                curve: Curves.easeInOutCubic,
-                style: TextStyle(
-                  fontSize: _getLabelFontSize(context),
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                  color: isSelected ? color : Colors.grey[600],
+              // Label - make it flexible
+              if (!isLandscape || screenWidth >= 768)
+                Flexible(
+                  child: AnimatedDefaultTextStyle(
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeInOutCubic,
+                    style: TextStyle(
+                      fontSize: _getLabelFontSize(context),
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                      color: isSelected ? color : Colors.grey[600],
+                    ),
+                    child: Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                 ),
-                child: Text(
-                  label,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
 
-              // Selection Indicator
+              // Selection Indicator - smaller in landscape
               AnimatedContainer(
                 duration: const Duration(milliseconds: 250),
                 curve: Curves.easeInOutCubic,
-                width: isSelected ? 20 : 0,
-                height: 2,
-                margin: const EdgeInsets.only(top: 4),
+                width: isSelected ? (isLandscape ? 12 : 20) : 0,
+                height: isLandscape ? 1.5 : 2,
+                margin: EdgeInsets.only(top: isLandscape ? 2 : 4),
                 decoration: BoxDecoration(
                   color: color,
                   borderRadius: BorderRadius.circular(1),
@@ -153,48 +173,83 @@ class AdminBottomNavigation extends StatelessWidget {
     );
   }
 
-  // Responsive dimension getters
-  double _getNavigationHeight(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
+  // Responsive dimension getters with better constraints
+  double _getMinNavigationHeight(BuildContext context) {
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth >= 768;
+    
+    if (isLandscape) {
+      return isTablet ? 50 : 45;
+    }
+    
+    return isTablet ? 65 : 55;
+  }
+
+  double _getMaxNavigationHeight(BuildContext context) {
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth >= 768;
     
     if (isLandscape) {
       return isTablet ? 65 : 55;
     }
     
-    if (isTablet) {
-      return 80;
+    return isTablet ? 85 : 75;
+  }
+
+  double _getItemMinHeight(BuildContext context) {
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    final screenWidth = MediaQuery.of(context).size.width;
+    
+    if (isLandscape) {
+      return screenWidth >= 768 ? 40 : 35;
     }
     
-    // For phones, use a percentage of screen height with min/max constraints
-    final dynamicHeight = screenHeight * 0.09;
-    return dynamicHeight.clamp(65.0, 85.0);
+    return screenWidth >= 768 ? 50 : 45;
   }
 
   double _getHorizontalPadding(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     
     if (screenWidth >= 768) {
-      return 32; // Tablet
+      return 24; // Tablet
     } else if (screenWidth >= 375) {
-      return 20; // Regular phone
+      return 16; // Regular phone
     } else {
       return 12; // Small phone
     }
   }
 
-  double _getVerticalPadding(BuildContext context) {
+  double _getTopPadding(BuildContext context) {
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
     final screenWidth = MediaQuery.of(context).size.width;
-    final isTablet = screenWidth >= 768;
     
     if (isLandscape) {
-      return isTablet ? 8 : 6;
+      return screenWidth >= 768 ? 8 : 6;
     }
     
-    return isTablet ? 12 : 8;
+    return screenWidth >= 768 ? 12 : 8;
+  }
+
+  double _getBottomPadding(BuildContext context, double bottomSafeArea) {
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    final screenWidth = MediaQuery.of(context).size.width;
+    
+    // Base padding
+    double basePadding;
+    if (isLandscape) {
+      basePadding = screenWidth >= 768 ? 8 : 6;
+    } else {
+      basePadding = screenWidth >= 768 ? 12 : 8;
+    }
+    
+    // Add extra padding if there's no bottom safe area (for devices without home indicator)
+    if (bottomSafeArea < 10) {
+      basePadding += 8;
+    }
+    
+    return basePadding;
   }
 
   double _getIconSize(BuildContext context) {
@@ -202,15 +257,15 @@ class AdminBottomNavigation extends StatelessWidget {
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
     
     if (isLandscape) {
-      return screenWidth >= 768 ? 22 : 18;
+      return screenWidth >= 768 ? 20 : 18;
     }
     
     if (screenWidth >= 768) {
-      return 26; // Tablet
+      return 24; // Tablet
     } else if (screenWidth >= 375) {
-      return 22; // Regular phone
+      return 20; // Regular phone
     } else {
-      return 20; // Small phone
+      return 18; // Small phone
     }
   }
 
@@ -219,15 +274,15 @@ class AdminBottomNavigation extends StatelessWidget {
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
     
     if (isLandscape) {
-      return screenWidth >= 768 ? 8 : 6;
+      return screenWidth >= 768 ? 6 : 5;
     }
     
     if (screenWidth >= 768) {
-      return 10; // Tablet
+      return 8; // Tablet
     } else if (screenWidth >= 375) {
-      return 8; // Regular phone
+      return 6; // Regular phone
     } else {
-      return 6; // Small phone
+      return 5; // Small phone
     }
   }
 
@@ -236,15 +291,15 @@ class AdminBottomNavigation extends StatelessWidget {
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
     
     if (isLandscape) {
-      return screenWidth >= 768 ? 12 : 10;
+      return screenWidth >= 768 ? 11 : 10;
     }
     
     if (screenWidth >= 768) {
-      return 14; // Tablet
+      return 13; // Tablet
     } else if (screenWidth >= 375) {
-      return 12; // Regular phone
+      return 11; // Regular phone
     } else {
-      return 11; // Small phone
+      return 10; // Small phone
     }
   }
 
@@ -253,9 +308,9 @@ class AdminBottomNavigation extends StatelessWidget {
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
     
     if (isLandscape) {
-      return 2;
+      return 1;
     }
     
-    return screenWidth >= 375 ? 4 : 3;
+    return screenWidth >= 375 ? 3 : 2;
   }
 }
